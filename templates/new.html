@@ -12,6 +12,10 @@
   <a class="back" href="/tasks">← 待簽客戶</a>
   <h1>配電盤檢測簽核單</h1>
 
+  {{if .PrevRejectReason}}
+  <div class="notice">↩️ 上次被退回，原因：{{.PrevRejectReason}}</div>
+  {{end}}
+
   <form method="post" action="/forms" enctype="multipart/form-data">
     {{if .Task}}<input type="hidden" name="task" value="{{.Task.ID}}">{{end}}
     <label>客戶

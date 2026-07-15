@@ -23,11 +23,12 @@
   {{if not .Pending}}<p class="muted">目前沒有待簽核的單。</p>{{end}}
   {{range .Pending}}
   <div class="card">
-    <p><strong><a href="/forms/{{.ID}}">#{{.ID}} {{if .Customer}}{{.Customer}}｜{{end}}{{.Site}}</a></strong>{{if .IsAnomaly}}<span class="flag">⚠ 異常</span>{{end}}</p>
+    <p><strong><a href="/forms/{{.ID}}?from=admin">#{{.ID}} {{if .Customer}}{{.Customer}}｜{{end}}{{.Site}}</a></strong>{{if .IsAnomaly}}<span class="flag">⚠ 異常</span>{{end}}</p>
     <p class="muted meta-code">{{.Panel}}｜{{.Engineer}}｜{{.CreatedFmt}}</p>
+    <input type="text" name="reason" form="rejectForm{{.ID}}" class="reason-input" placeholder="若退回，請簡述原因（工程師會看到）" required>
     <div class="actions">
       <form method="post" action="/forms/{{.ID}}/approve"><button class="approve">核准</button></form>
-      <form method="post" action="/forms/{{.ID}}/reject"><button class="reject">退回</button></form>
+      <form id="rejectForm{{.ID}}" method="post" action="/forms/{{.ID}}/reject"><button class="reject">退回</button></form>
     </div>
   </div>
   {{end}}
@@ -36,7 +37,7 @@
   {{if not .Processed}}<p class="muted">尚無紀錄。</p>{{end}}
   {{range .Processed}}
   <div class="card row">
-    <span><a href="/forms/{{.ID}}">#{{.ID}} {{.Site}}</a>{{if .IsAnomaly}}<span class="flag">⚠</span>{{end}}<br>
+    <span><a href="/forms/{{.ID}}?from=admin">#{{.ID}} {{.Site}}</a>{{if .IsAnomaly}}<span class="flag">⚠</span>{{end}}<br>
       <span class="muted">{{.Engineer}}｜簽核 {{.ReviewedFmt}}</span></span>
     <span class="badge {{.StatusClass}}">{{.Status}}</span>
   </div>

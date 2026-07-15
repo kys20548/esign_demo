@@ -3,56 +3,60 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>簽核單 #{{.ID}}</title>
+<title>簽核單 #{{.Form.ID}}</title>
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 {{template "topbar"}}
 <main class="wrap">
-  <a class="back" href="/admin">← 簽核後台</a>
-  <h1>簽核單 #{{.ID}} <span class="badge {{.StatusClass}}">{{.Status}}</span></h1>
+  <a class="back" href="{{.Back}}">← {{.BackLabel}}</a>
+  <h1>簽核單 #{{.Form.ID}} <span class="badge {{.Form.StatusClass}}">{{.Form.Status}}</span></h1>
 
-  {{if .IsAnomaly}}
+  {{if .Form.IsAnomaly}}
   <div class="notice">⚠️ 本次檢測有項目未通過，請主管留意備註說明。</div>
+  {{end}}
+  {{if eq .Form.Status "已退回"}}
+  <div class="notice">↩️ 退回原因：{{.Form.RejectReason}}</div>
   {{end}}
 
   <div class="card">
-    {{if .Customer}}<p><strong>客戶：</strong>{{.Customer}}</p>{{end}}
-    <p><strong>案場：</strong>{{.Site}}</p>
-    <p><strong>盤體 / 迴路：</strong><span class="meta-code">{{.Panel}}</span></p>
-    <p><strong>檢測人員：</strong>{{.Engineer}}</p>
-    <p><strong>填單時間：</strong><span class="meta-code">{{.CreatedFmt}}</span></p>
-    {{if .ReviewedFmt}}<p><strong>簽核時間：</strong><span class="meta-code">{{.ReviewedFmt}}</span></p>{{end}}
+    {{if .Form.Customer}}<p><strong>客戶：</strong>{{.Form.Customer}}</p>{{end}}
+    <p><strong>案場：</strong>{{.Form.Site}}</p>
+    <p><strong>盤體 / 迴路：</strong><span class="meta-code">{{.Form.Panel}}</span></p>
+    <p><strong>檢測人員：</strong>{{.Form.Engineer}}</p>
+    <p><strong>填單時間：</strong><span class="meta-code">{{.Form.CreatedFmt}}</span></p>
+    {{if .Form.ReviewedFmt}}<p><strong>簽核時間：</strong><span class="meta-code">{{.Form.ReviewedFmt}}</span></p>{{end}}
   </div>
 
   <div class="card">
     <strong>檢測項目</strong>
     <ul class="items">
-      {{range .Items}}
+      {{range .Form.Items}}
       <li>{{if .OK}}<span class="ok">✔</span>{{else}}<span class="ng">✘</span>{{end}} {{.Name}}</li>
       {{end}}
     </ul>
-    {{if .Note}}<p><strong>備註：</strong>{{.Note}}</p>{{end}}
+    {{if .Form.Note}}<p><strong>備註：</strong>{{.Form.Note}}</p>{{end}}
   </div>
 
-  {{if .HasPhoto}}
+  {{if .Form.HasPhoto}}
   <div class="card">
     <strong>現場照片</strong>
-    <img class="photo" src="/photos/{{.ID}}" alt="現場照片">
+    <img class="photo" src="/photos/{{.Form.ID}}" alt="現場照片">
   </div>
   {{end}}
 
-  {{if .Signature}}
+  {{if .Form.Signature}}
   <div class="card">
     <strong>客戶簽名確認</strong>
-    <img class="signature-display" src="{{.Signature}}" alt="客戶手寫簽名">
+    <img class="signature-display" src="{{.Form.Signature}}" alt="客戶手寫簽名">
   </div>
   {{end}}
 
-  {{if eq .Status "待簽核"}}
+  {{if eq .Form.Status "待簽核"}}
+  <input type="text" name="reason" form="rejectForm{{.Form.ID}}" class="reason-input" placeholder="若退回，請簡述原因（工程師會看到）" required>
   <div class="actions">
-    <form method="post" action="/forms/{{.ID}}/approve"><button class="approve">核准</button></form>
-    <form method="post" action="/forms/{{.ID}}/reject"><button class="reject">退回</button></form>
+    <form method="post" action="/forms/{{.Form.ID}}/approve"><button class="approve">核准</button></form>
+    <form id="rejectForm{{.Form.ID}}" method="post" action="/forms/{{.Form.ID}}/reject"><button class="reject">退回</button></form>
   </div>
   {{end}}
 </main>

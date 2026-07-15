@@ -29,8 +29,11 @@
     <p class="muted meta-code">{{.Site}}｜{{.Panel}}｜{{.Engineer}}</p>
     {{if eq .Status "未填單"}}
     <a class="btn-link" href="/new?task={{.ID}}">填單簽核 →</a>
+    {{else if eq .Status "已退回"}}
+    <a class="link-line" href="/forms/{{.FormID}}?from=tasks">查看退回原因 #{{.FormID}}</a>
+    <a class="btn-link" href="/new?task={{.ID}}">重新填單 →</a>
     {{else if .FormID}}
-    <a href="/forms/{{.FormID}}">查看簽核單 #{{.FormID}}</a>
+    <a class="link-line" href="/forms/{{.FormID}}?from=tasks">查看簽核單 #{{.FormID}}</a>
     {{end}}
   </div>
   {{end}}

@@ -189,6 +189,16 @@ button.reject { background: var(--ink); }
   background: var(--accent); color: #fff !important; font-weight: 700;
   border-radius: 4px; text-decoration: none; font-size: .9rem;
 }
+.link-line {
+  display: block; margin-top: 6px; font-size: .88rem;
+  color: var(--accent-ink); font-weight: 600; text-decoration: none;
+}
+
+.reason-input {
+  display: block; width: 100%; margin-top: 10px;
+  padding: 10px; font-size: .92rem; font-family: var(--font-body);
+  border: 1px solid #c9c2ac; border-radius: 4px; background: var(--surface); color: var(--ink);
+}
 
 /* ---------- Status: LED chip ---------- */
 .badge {

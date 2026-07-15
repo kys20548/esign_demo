@@ -38,18 +38,19 @@ type CheckItem struct {
 }
 
 type Form struct {
-	ID         int
-	Customer   string
-	Site       string
-	Panel      string
-	Engineer   string
-	Items      []CheckItem
-	Note       string
-	HasPhoto   bool
-	Signature  template.URL // data:image/png;base64,... 客戶手寫簽名，未簽則為空字串；型別已標記為安全 URL（見 parseSignature 的驗證）
-	Status     string // 待簽核 / 已核准 / 已退回
-	CreatedAt  time.Time
-	ReviewedAt time.Time
+	ID           int
+	Customer     string
+	Site         string
+	Panel        string
+	Engineer     string
+	Items        []CheckItem
+	Note         string
+	HasPhoto     bool
+	Signature    template.URL // data:image/png;base64,... 客戶手寫簽名，未簽則為空字串；型別已標記為安全 URL（見 parseSignature 的驗證）
+	Status       string       // 待簽核 / 已核准 / 已退回
+	RejectReason string       // 退回時主管填寫，供工程師重新填單時參考
+	CreatedAt    time.Time
+	ReviewedAt   time.Time
 }
 
 const signaturePrefix = "data:image/png;base64,"
@@ -222,7 +223,7 @@ func (s *store) clear() {
 	s.nextTaskID = 1
 }
 
-func (s *store) review(id int, status string) bool {
+func (s *store) review(id int, status, reason string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	f, ok := s.forms[id]
@@ -230,6 +231,7 @@ func (s *store) review(id int, status string) bool {
 		return false
 	}
 	f.Status = status
+	f.RejectReason = reason
 	f.ReviewedAt = time.Now()
 	return true
 }
@@ -304,7 +306,7 @@ func seed(s *store) {
 		Note:     "全數合格，已拍照存查。",
 		Status:   "待簽核", CreatedAt: time.Now().Add(-26 * time.Hour),
 	}, nil, "")
-	s.review(done.ID, "已核准")
+	s.review(done.ID, "已核准", "")
 	waiting := s.add(&Form{
 		Customer: "台茂精密", Site: "中壢工業區 廠務改善案", Panel: "MCC-2 盤",
 		Engineer: "林大偉",
@@ -312,11 +314,19 @@ func seed(s *store) {
 		Note:     "匯流排 B 相接點有過熱變色，建議停機檢修後複測。",
 		Status:   "待簽核", CreatedAt: time.Now().Add(-40 * time.Minute),
 	}, nil, "")
+	rejected := s.add(&Form{
+		Customer: "幸福水泥", Site: "楊梅廠年度檢測", Panel: "ATS-1",
+		Engineer: "陳志明",
+		Items:    items(true, false, true, true, true, true),
+		Note:     "接地阻抗量測值偏高，待複測。",
+		Status:   "待簽核", CreatedAt: time.Now().Add(-3 * time.Hour),
+	}, nil, "")
+	s.review(rejected.ID, "已退回", "接地阻抗超標，請重新檢測並附上量測數據照片")
 
 	s.addTask(&Task{Customer: "富宇建設", Site: "桃園青埔物流中心 新建工程", Panel: "P1-LP-3", Engineer: "陳志明", FormID: done.ID})
 	s.addTask(&Task{Customer: "台茂精密", Site: "中壢工業區 廠務改善案", Panel: "MCC-2 盤", Engineer: "林大偉", FormID: waiting.ID})
 	s.addTask(&Task{Customer: "桃園捷運公司", Site: "A19 站機電年度保養", Panel: "HV-1 高壓盤", Engineer: "陳志明"})
-	s.addTask(&Task{Customer: "幸福水泥", Site: "楊梅廠年度檢測", Panel: "ATS-1", Engineer: "陳志明"})
+	s.addTask(&Task{Customer: "幸福水泥", Site: "楊梅廠年度檢測", Panel: "ATS-1", Engineer: "陳志明", FormID: rejected.ID})
 	s.addTask(&Task{Customer: "大江購物中心", Site: "消防設備複檢", Panel: "FP-3 消防盤", Engineer: "林大偉"})
 }
 
@@ -362,10 +372,17 @@ func main() {
 
 	mux.HandleFunc("GET /new", func(w http.ResponseWriter, r *http.Request) {
 		var task *Task
+		var prevRejectReason string
 		if id, err := strconv.Atoi(r.URL.Query().Get("task")); err == nil {
-			task, _ = s.getTask(id)
+			if task, _ = s.getTask(id); task != nil {
+				if f, ok := s.get(task.FormID); ok && f.Status == "已退回" {
+					prevRejectReason = f.RejectReason
+				}
+			}
 		}
-		render(w, "new.html", map[string]any{"Items": checkItemNames, "Task": task})
+		render(w, "new.html", map[string]any{
+			"Items": checkItemNames, "Task": task, "PrevRejectReason": prevRejectReason,
+		})
 	})
 
 	mux.HandleFunc("POST /forms", func(w http.ResponseWriter, r *http.Request) {
@@ -402,7 +419,7 @@ func main() {
 		if taskID, err := strconv.Atoi(r.FormValue("task")); err == nil {
 			s.linkTask(taskID, f.ID)
 		}
-		http.Redirect(w, r, fmt.Sprintf("/forms/%d", f.ID), http.StatusSeeOther)
+		http.Redirect(w, r, fmt.Sprintf("/forms/%d?from=tasks", f.ID), http.StatusSeeOther)
 	})
 
 	mux.HandleFunc("GET /forms/{id}", func(w http.ResponseWriter, r *http.Request) {
@@ -412,7 +429,11 @@ func main() {
 			http.NotFound(w, r)
 			return
 		}
-		render(w, "detail.html", f)
+		back, backLabel := "/admin", "簽核後台"
+		if r.URL.Query().Get("from") == "tasks" {
+			back, backLabel = "/tasks", "待簽客戶"
+		}
+		render(w, "detail.html", map[string]any{"Form": f, "Back": back, "BackLabel": backLabel})
 	})
 
 	mux.HandleFunc("GET /admin", func(w http.ResponseWriter, r *http.Request) {
@@ -425,7 +446,7 @@ func main() {
 	review := func(status string) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			id, _ := strconv.Atoi(r.PathValue("id"))
-			s.review(id, status)
+			s.review(id, status, r.FormValue("reason"))
 			http.Redirect(w, r, "/admin", http.StatusSeeOther)
 		}
 	}
