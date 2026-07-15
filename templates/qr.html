@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>掃碼開啟 行動簽核</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+{{template "topbar"}}
+<main class="wrap">
+  <a class="back" href="/">← 回首頁</a>
+  <h1>用手機掃碼開啟</h1>
+  <p class="muted">請拿出手機相機對準下方 QR code，不用同一個 Wi-Fi，直接連上公開網址即可體驗。</p>
+
+  <div class="card qr-card">
+    <img class="qr-img" src="/static/qr.png" alt="行動簽核 demo QR code">
+    <p class="meta-code qr-url">esign-demo-40z9.onrender.com</p>
+  </div>
+</main>
+</body>
+</html>

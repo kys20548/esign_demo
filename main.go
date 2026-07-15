@@ -348,6 +348,10 @@ func main() {
 		render(w, "index.html", nil)
 	})
 
+	mux.HandleFunc("GET /qr", func(w http.ResponseWriter, r *http.Request) {
+		render(w, "qr.html", nil)
+	})
+
 	mux.HandleFunc("GET /tasks", func(w http.ResponseWriter, r *http.Request) {
 		selected := r.URL.Query().Get("engineer")
 		views, engineers := s.taskViews(selected)
