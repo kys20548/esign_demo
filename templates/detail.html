@@ -52,6 +52,21 @@
   </div>
   {{end}}
 
+  {{if .History}}
+  <div class="card">
+    <strong>簽核歷程</strong>
+    <ul class="timeline">
+      {{range .History}}
+      <li class="{{if eq .ID $.Form.ID}}current{{end}}">
+        <span class="badge {{.StatusClass}}">{{.Status}}</span>
+        <span class="meta-code">#{{.ID}}｜{{.CreatedFmt}}</span>
+        {{if eq .Status "已退回"}}<p class="muted">退回原因：{{.RejectReason}}</p>{{end}}
+      </li>
+      {{end}}
+    </ul>
+  </div>
+  {{end}}
+
   {{if eq .Form.Status "待簽核"}}
   <input type="text" name="reason" form="rejectForm{{.Form.ID}}" class="reason-input" placeholder="若退回，請簡述原因（工程師會看到）" required>
   <div class="actions">

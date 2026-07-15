@@ -258,10 +258,33 @@ button.reject { background: var(--ink); }
 .photo { width: 100%; border-radius: 4px; margin-top: 8px; }
 
 .notice {
-  display: flex; gap: 8px; align-items: flex-start;
+  display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap;
   background: var(--bad-bg); border: 1px solid #f0b3b5; color: #8a2226;
   border-radius: 4px; padding: 10px 12px; margin-top: 10px; font-size: .88rem; font-weight: 600;
 }
+.notice.info {
+  background: #e6e9f2; border-color: #c3cae0; color: #2a3357;
+}
+.notice.info .muted { font-weight: 400; flex-basis: 100%; }
+
+/* ---------- Signing history timeline ---------- */
+.timeline { list-style: none; padding: 0; margin: 8px 0 0; border-left: 2px solid var(--line); }
+.timeline li { position: relative; padding: 4px 0 12px 16px; }
+.timeline li::before {
+  content: ""; position: absolute; left: -6px; top: 8px;
+  width: 9px; height: 9px; border-radius: 50%; background: var(--line);
+}
+.timeline li.current::before { background: var(--accent); }
+.timeline li .meta-code { margin-left: 6px; font-size: .8rem; color: var(--ink-soft); }
+.timeline li p { margin: 4px 0 0; font-size: .85rem; }
+
+/* ---------- Dispatch form ---------- */
+.dispatch-details { margin-top: 14px; }
+.dispatch-details summary {
+  cursor: pointer; font-weight: 700; color: var(--accent-ink);
+  font-size: .92rem; padding: 4px 0;
+}
+.dispatch-form button { max-width: 220px; }
 
 /* ---------- Meta strip: mono panel codes ---------- */
 .meta-code { font-family: var(--font-mono); font-weight: 600; }

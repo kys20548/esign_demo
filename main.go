@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"sort"
 	"strconv"
@@ -39,6 +40,7 @@ type CheckItem struct {
 
 type Form struct {
 	ID           int
+	TaskID       int // 0 表示臨時填單、未綁定派工
 	Customer     string
 	Site         string
 	Panel        string
@@ -186,6 +188,24 @@ func (s *store) list() (pending, processed []*Form) {
 	return pending, processed
 }
 
+// formsForTask 回傳同一個派工底下所有送過的單，依填單時間由舊到新排序，
+// 用來在詳情頁呈現「建立 → 退回 → 重新送單」的完整歷程。
+func (s *store) formsForTask(taskID int) []*Form {
+	if taskID == 0 {
+		return nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var out []*Form
+	for _, f := range s.forms {
+		if f.TaskID == taskID {
+			out = append(out, f)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.Before(out[j].CreatedAt) })
+	return out
+}
+
 // Stats 給主管後台的儀表板：各狀態張數與異常項目張數。
 type Stats struct {
 	Pending, Approved, Rejected, Anomaly int
@@ -299,7 +319,14 @@ func seed(s *store) {
 		}
 		return out
 	}
+	t1 := s.addTask(&Task{Customer: "富宇建設", Site: "桃園青埔物流中心 新建工程", Panel: "P1-LP-3", Engineer: "陳志明"})
+	t2 := s.addTask(&Task{Customer: "台茂精密", Site: "中壢工業區 廠務改善案", Panel: "MCC-2 盤", Engineer: "林大偉"})
+	s.addTask(&Task{Customer: "桃園捷運公司", Site: "A19 站機電年度保養", Panel: "HV-1 高壓盤", Engineer: "陳志明"})
+	t4 := s.addTask(&Task{Customer: "幸福水泥", Site: "楊梅廠年度檢測", Panel: "ATS-1", Engineer: "陳志明"})
+	s.addTask(&Task{Customer: "大江購物中心", Site: "消防設備複檢", Panel: "FP-3 消防盤", Engineer: "林大偉"})
+
 	done := s.add(&Form{
+		TaskID:   t1.ID,
 		Customer: "富宇建設", Site: "桃園青埔物流中心 新建工程", Panel: "P1-LP-3",
 		Engineer: "陳志明",
 		Items:    items(true, true, true, true, true, true),
@@ -307,14 +334,20 @@ func seed(s *store) {
 		Status:   "待簽核", CreatedAt: time.Now().Add(-26 * time.Hour),
 	}, nil, "")
 	s.review(done.ID, "已核准", "")
+	s.linkTask(t1.ID, done.ID)
+
 	waiting := s.add(&Form{
+		TaskID:   t2.ID,
 		Customer: "台茂精密", Site: "中壢工業區 廠務改善案", Panel: "MCC-2 盤",
 		Engineer: "林大偉",
 		Items:    items(true, true, false, true, true, true),
 		Note:     "匯流排 B 相接點有過熱變色，建議停機檢修後複測。",
 		Status:   "待簽核", CreatedAt: time.Now().Add(-40 * time.Minute),
 	}, nil, "")
+	s.linkTask(t2.ID, waiting.ID)
+
 	rejected := s.add(&Form{
+		TaskID:   t4.ID,
 		Customer: "幸福水泥", Site: "楊梅廠年度檢測", Panel: "ATS-1",
 		Engineer: "陳志明",
 		Items:    items(true, false, true, true, true, true),
@@ -322,12 +355,7 @@ func seed(s *store) {
 		Status:   "待簽核", CreatedAt: time.Now().Add(-3 * time.Hour),
 	}, nil, "")
 	s.review(rejected.ID, "已退回", "接地阻抗超標，請重新檢測並附上量測數據照片")
-
-	s.addTask(&Task{Customer: "富宇建設", Site: "桃園青埔物流中心 新建工程", Panel: "P1-LP-3", Engineer: "陳志明", FormID: done.ID})
-	s.addTask(&Task{Customer: "台茂精密", Site: "中壢工業區 廠務改善案", Panel: "MCC-2 盤", Engineer: "林大偉", FormID: waiting.ID})
-	s.addTask(&Task{Customer: "桃園捷運公司", Site: "A19 站機電年度保養", Panel: "HV-1 高壓盤", Engineer: "陳志明"})
-	s.addTask(&Task{Customer: "幸福水泥", Site: "楊梅廠年度檢測", Panel: "ATS-1", Engineer: "陳志明", FormID: rejected.ID})
-	s.addTask(&Task{Customer: "大江購物中心", Site: "消防設備複檢", Panel: "FP-3 消防盤", Engineer: "林大偉"})
+	s.linkTask(t4.ID, rejected.ID)
 }
 
 var tmpl *template.Template
@@ -405,7 +433,9 @@ func main() {
 			file.Close()
 			photoType = header.Header.Get("Content-Type")
 		}
+		taskID, _ := strconv.Atoi(r.FormValue("task")) // 0 表示臨時填單，非派工清單觸發
 		f := s.add(&Form{
+			TaskID:    taskID,
 			Customer:  r.FormValue("customer"),
 			Site:      r.FormValue("site"),
 			Panel:     r.FormValue("panel"),
@@ -416,7 +446,7 @@ func main() {
 			Status:    "待簽核",
 			CreatedAt: time.Now(),
 		}, photo, photoType)
-		if taskID, err := strconv.Atoi(r.FormValue("task")); err == nil {
+		if taskID != 0 {
 			s.linkTask(taskID, f.ID)
 		}
 		http.Redirect(w, r, fmt.Sprintf("/forms/%d?from=tasks", f.ID), http.StatusSeeOther)
@@ -433,13 +463,21 @@ func main() {
 		if r.URL.Query().Get("from") == "tasks" {
 			back, backLabel = "/tasks", "待簽客戶"
 		}
-		render(w, "detail.html", map[string]any{"Form": f, "Back": back, "BackLabel": backLabel})
+		history := s.formsForTask(f.TaskID)
+		if len(history) < 2 {
+			history = nil
+		}
+		render(w, "detail.html", map[string]any{
+			"Form": f, "Back": back, "BackLabel": backLabel, "History": history,
+		})
 	})
 
 	mux.HandleFunc("GET /admin", func(w http.ResponseWriter, r *http.Request) {
 		pending, processed := s.list()
 		render(w, "admin.html", map[string]any{
 			"Pending": pending, "Processed": processed, "Stats": s.stats(),
+			"NotifiedEngineer": r.URL.Query().Get("notified"),
+			"NotifiedAction":   r.URL.Query().Get("action"),
 		})
 	})
 
@@ -447,11 +485,26 @@ func main() {
 		return func(w http.ResponseWriter, r *http.Request) {
 			id, _ := strconv.Atoi(r.PathValue("id"))
 			s.review(id, status, r.FormValue("reason"))
-			http.Redirect(w, r, "/admin", http.StatusSeeOther)
+			engineer := ""
+			if f, ok := s.get(id); ok {
+				engineer = f.Engineer
+			}
+			q := url.Values{"notified": {engineer}, "action": {status}}
+			http.Redirect(w, r, "/admin?"+q.Encode(), http.StatusSeeOther)
 		}
 	}
 	mux.HandleFunc("POST /forms/{id}/approve", review("已核准"))
 	mux.HandleFunc("POST /forms/{id}/reject", review("已退回"))
+
+	mux.HandleFunc("POST /tasks", func(w http.ResponseWriter, r *http.Request) {
+		s.addTask(&Task{
+			Customer: r.FormValue("customer"),
+			Site:     r.FormValue("site"),
+			Panel:    r.FormValue("panel"),
+			Engineer: r.FormValue("engineer"),
+		})
+		http.Redirect(w, r, "/admin", http.StatusSeeOther)
+	})
 
 	mux.HandleFunc("GET /photos/{id}", func(w http.ResponseWriter, r *http.Request) {
 		id, _ := strconv.Atoi(r.PathValue("id"))

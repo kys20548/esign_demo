@@ -12,12 +12,38 @@
   <a class="back" href="/">← 回首頁</a>
   <h1>簽核後台</h1>
 
+  {{if .NotifiedEngineer}}
+  <div class="notice notice-info">
+    📱 模擬 LINE 通知已送出給 <strong>{{.NotifiedEngineer}}</strong>：{{if eq .NotifiedAction "已核准"}}單據已核准{{else}}單據已退回，請查看原因{{end}}
+    <span class="muted">（示意用，正式上線需申請公司 LINE 官方帳號串接 Messaging API）</span>
+  </div>
+  {{end}}
+
   <div class="gauge-row">
     <div class="gauge"><span class="led led-amber"></span><span class="gauge-num">{{.Stats.Pending}}</span><span class="gauge-label">待簽核</span></div>
     <div class="gauge"><span class="led led-green"></span><span class="gauge-num">{{.Stats.Approved}}</span><span class="gauge-label">已核准</span></div>
     <div class="gauge"><span class="led led-red"></span><span class="gauge-num">{{.Stats.Rejected}}</span><span class="gauge-label">已退回</span></div>
     <div class="gauge"><span class="led led-warn"></span><span class="gauge-num">{{.Stats.Anomaly}}</span><span class="gauge-label">異常項目</span></div>
   </div>
+
+  <details class="dispatch-details">
+    <summary>＋ 指派新案場</summary>
+    <form method="post" action="/tasks" class="card dispatch-form">
+      <label>客戶
+        <input name="customer" required placeholder="例：桃園捷運公司">
+      </label>
+      <label>案場名稱
+        <input name="site" required placeholder="例：A19 站機電年度保養">
+      </label>
+      <label>盤體 / 迴路編號
+        <input name="panel" required placeholder="例：HV-1 高壓盤">
+      </label>
+      <label>指派工程師
+        <input name="engineer" required placeholder="姓名">
+      </label>
+      <button type="submit">新增派工</button>
+    </form>
+  </details>
 
   <h2>待簽核（{{len .Pending}}）</h2>
   {{if not .Pending}}<p class="muted">目前沒有待簽核的單。</p>{{end}}
