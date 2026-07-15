@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>填寫檢測簽核單</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<main class="wrap">
+  <a class="back" href="/tasks">← 待簽客戶</a>
+  <h1>配電盤檢測簽核單</h1>
+
+  <form method="post" action="/forms" enctype="multipart/form-data">
+    {{if .Task}}<input type="hidden" name="task" value="{{.Task.ID}}">{{end}}
+    <label>客戶
+      <input name="customer" {{if .Task}}value="{{.Task.Customer}}"{{end}} placeholder="例：桃園捷運公司">
+    </label>
+    <label>案場名稱
+      <input name="site" required {{if .Task}}value="{{.Task.Site}}"{{end}} placeholder="例：桃園青埔物流中心 新建工程">
+    </label>
+    <label>盤體 / 迴路編號
+      <input name="panel" required {{if .Task}}value="{{.Task.Panel}}"{{end}} placeholder="例：P1-LP-3">
+    </label>
+    <label>檢測人員
+      <input name="engineer" required {{if .Task}}value="{{.Task.Engineer}}"{{end}} placeholder="姓名">
+    </label>
+
+    <fieldset>
+      <legend>檢測項目（勾選＝合格）</legend>
+      {{range .Items}}
+      <label class="check">
+        <input type="checkbox" name="item" value="{{.}}"> {{.}}
+      </label>
+      {{end}}
+    </fieldset>
+
+    <label>備註
+      <textarea name="note" rows="3" placeholder="異常說明、後續建議…"></textarea>
+    </label>
+
+    <label>現場照片
+      <input type="file" name="photo" accept="image/*" capture="environment">
+    </label>
+
+    <button type="submit">送出簽核</button>
+  </form>
+</main>
+</body>
+</html>

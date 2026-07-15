@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>簽核單 #{{.ID}}</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<main class="wrap">
+  <a class="back" href="/admin">← 簽核後台</a>
+  <h1>簽核單 #{{.ID}} <span class="badge {{.StatusClass}}">{{.Status}}</span></h1>
+
+  <div class="card">
+    {{if .Customer}}<p><strong>客戶：</strong>{{.Customer}}</p>{{end}}
+    <p><strong>案場：</strong>{{.Site}}</p>
+    <p><strong>盤體 / 迴路：</strong>{{.Panel}}</p>
+    <p><strong>檢測人員：</strong>{{.Engineer}}</p>
+    <p><strong>填單時間：</strong>{{.CreatedFmt}}</p>
+    {{if .ReviewedFmt}}<p><strong>簽核時間：</strong>{{.ReviewedFmt}}</p>{{end}}
+  </div>
+
+  <div class="card">
+    <strong>檢測項目</strong>
+    <ul class="items">
+      {{range .Items}}
+      <li>{{if .OK}}<span class="ok">✔</span>{{else}}<span class="ng">✘</span>{{end}} {{.Name}}</li>
+      {{end}}
+    </ul>
+    {{if .Note}}<p><strong>備註：</strong>{{.Note}}</p>{{end}}
+  </div>
+
+  {{if .HasPhoto}}
+  <div class="card">
+    <strong>現場照片</strong>
+    <img class="photo" src="/photos/{{.ID}}" alt="現場照片">
+  </div>
+  {{end}}
+
+  {{if eq .Status "待簽核"}}
+  <div class="actions">
+    <form method="post" action="/forms/{{.ID}}/approve"><button class="approve">核准</button></form>
+    <form method="post" action="/forms/{{.ID}}/reject"><button class="reject">退回</button></form>
+  </div>
+  {{end}}
+</main>
+</body>
+</html>

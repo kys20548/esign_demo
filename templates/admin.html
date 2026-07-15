@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>簽核後台</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<main class="wrap">
+  <a class="back" href="/">← 回首頁</a>
+  <h1>簽核後台</h1>
+
+  <h2>待簽核（{{len .Pending}}）</h2>
+  {{if not .Pending}}<p class="muted">目前沒有待簽核的單。</p>{{end}}
+  {{range .Pending}}
+  <div class="card">
+    <p><strong><a href="/forms/{{.ID}}">#{{.ID}} {{if .Customer}}{{.Customer}}｜{{end}}{{.Site}}</a></strong></p>
+    <p class="muted">{{.Panel}}｜{{.Engineer}}｜{{.CreatedFmt}}</p>
+    <div class="actions">
+      <form method="post" action="/forms/{{.ID}}/approve"><button class="approve">核准</button></form>
+      <form method="post" action="/forms/{{.ID}}/reject"><button class="reject">退回</button></form>
+    </div>
+  </div>
+  {{end}}
+
+  <h2>已處理</h2>
+  {{if not .Processed}}<p class="muted">尚無紀錄。</p>{{end}}
+  {{range .Processed}}
+  <div class="card row">
+    <span><a href="/forms/{{.ID}}">#{{.ID}} {{.Site}}</a><br>
+      <span class="muted">{{.Engineer}}｜簽核 {{.ReviewedFmt}}</span></span>
+    <span class="badge {{.StatusClass}}">{{.Status}}</span>
+  </div>
+  {{end}}
+</main>
+</body>
+</html>

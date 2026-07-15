@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>我的待簽客戶</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<main class="wrap">
+  <a class="back" href="/">← 回首頁</a>
+  <h1>我的待簽客戶</h1>
+
+  <div class="chips">
+    <a class="chip{{if eq .Selected ""}} active{{end}}" href="/tasks">全部</a>
+    {{range .Engineers}}
+    <a class="chip{{if eq $.Selected .}} active{{end}}" href="/tasks?engineer={{.}}">{{.}}</a>
+    {{end}}
+  </div>
+
+  {{if not .Views}}<p class="muted">沒有派工紀錄。</p>{{end}}
+  {{range .Views}}
+  <div class="card">
+    <div class="row">
+      <strong>{{.Customer}}</strong>
+      <span class="badge {{.StatusClass}}">{{.Status}}</span>
+    </div>
+    <p class="muted">{{.Site}}｜{{.Panel}}｜{{.Engineer}}</p>
+    {{if eq .Status "未填單"}}
+    <a class="btn-link" href="/new?task={{.ID}}">填單簽核 →</a>
+    {{else if .FormID}}
+    <a href="/forms/{{.FormID}}">查看簽核單 #{{.FormID}}</a>
+    {{end}}
+  </div>
+  {{end}}
+
+  <p style="margin-top:20px"><a href="/new">＋ 臨時填單（不在派工清單內）</a></p>
+</main>
+</body>
+</html>
