@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+{{template "topbar"}}
 <main class="wrap">
   <a class="back" href="/tasks">← 待簽客戶</a>
   <h1>配電盤檢測簽核單</h1>
@@ -43,8 +44,24 @@
       <input type="file" name="photo" accept="image/*" capture="environment">
     </label>
 
+    <div class="sigpad-wrap">
+      <label>客戶簽名確認
+        <span class="field-hint">請把手機交給客戶，用手指在下方簽名，確認本次檢測已完成</span>
+      </label>
+      <div class="sigpad-frame">
+        <canvas id="sigpad" class="sigpad"></canvas>
+        <div class="sigpad-baseline"></div>
+        <div id="sigHint" class="sigpad-hint">✍️ 在此簽名</div>
+      </div>
+      <div class="sigpad-actions">
+        <button type="button" id="sigClear" class="btn-ghost">清除重簽</button>
+      </div>
+      <input type="hidden" name="signature" id="sigData">
+    </div>
+
     <button type="submit">送出簽核</button>
   </form>
 </main>
+<script src="/static/app.js"></script>
 </body>
 </html>

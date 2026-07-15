@@ -7,17 +7,22 @@
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+{{template "topbar"}}
 <main class="wrap">
   <a class="back" href="/admin">← 簽核後台</a>
   <h1>簽核單 #{{.ID}} <span class="badge {{.StatusClass}}">{{.Status}}</span></h1>
 
+  {{if .IsAnomaly}}
+  <div class="notice">⚠️ 本次檢測有項目未通過，請主管留意備註說明。</div>
+  {{end}}
+
   <div class="card">
     {{if .Customer}}<p><strong>客戶：</strong>{{.Customer}}</p>{{end}}
     <p><strong>案場：</strong>{{.Site}}</p>
-    <p><strong>盤體 / 迴路：</strong>{{.Panel}}</p>
+    <p><strong>盤體 / 迴路：</strong><span class="meta-code">{{.Panel}}</span></p>
     <p><strong>檢測人員：</strong>{{.Engineer}}</p>
-    <p><strong>填單時間：</strong>{{.CreatedFmt}}</p>
-    {{if .ReviewedFmt}}<p><strong>簽核時間：</strong>{{.ReviewedFmt}}</p>{{end}}
+    <p><strong>填單時間：</strong><span class="meta-code">{{.CreatedFmt}}</span></p>
+    {{if .ReviewedFmt}}<p><strong>簽核時間：</strong><span class="meta-code">{{.ReviewedFmt}}</span></p>{{end}}
   </div>
 
   <div class="card">
@@ -34,6 +39,13 @@
   <div class="card">
     <strong>現場照片</strong>
     <img class="photo" src="/photos/{{.ID}}" alt="現場照片">
+  </div>
+  {{end}}
+
+  {{if .Signature}}
+  <div class="card">
+    <strong>客戶簽名確認</strong>
+    <img class="signature-display" src="{{.Signature}}" alt="客戶手寫簽名">
   </div>
   {{end}}
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"encoding/base64"
 	"fmt"
 	"html/template"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -44,9 +46,36 @@ type Form struct {
 	Items      []CheckItem
 	Note       string
 	HasPhoto   bool
+	Signature  template.URL // data:image/png;base64,... 客戶手寫簽名，未簽則為空字串；型別已標記為安全 URL（見 parseSignature 的驗證）
 	Status     string // 待簽核 / 已核准 / 已退回
 	CreatedAt  time.Time
 	ReviewedAt time.Time
+}
+
+const signaturePrefix = "data:image/png;base64,"
+
+// parseSignature 驗證客戶端送來的簽名是合法的 base64 PNG data URL，並回傳
+// template.URL 型別——html/template 預設會把 data: URI 當成不安全來源、
+// 渲染成 #ZgotmplZ，只有明確標記為 template.URL 才會放行；只有在確認前綴
+// 與 base64 內容都合法之後才做這個標記，避免真的引入 XSS 風險。
+func parseSignature(sig string) template.URL {
+	if !strings.HasPrefix(sig, signaturePrefix) || len(sig) > 2<<20 {
+		return ""
+	}
+	if _, err := base64.StdEncoding.DecodeString(sig[len(signaturePrefix):]); err != nil {
+		return ""
+	}
+	return template.URL(sig)
+}
+
+// IsAnomaly 代表本張單有檢測項目未通過，主管簽核時應特別留意。
+func (f *Form) IsAnomaly() bool {
+	for _, it := range f.Items {
+		if !it.OK {
+			return true
+		}
+	}
+	return false
 }
 
 // Task 是一筆派工：某位工程師要去某客戶案場完成簽核。FormID=0 表示還沒填單。
@@ -154,6 +183,31 @@ func (s *store) list() (pending, processed []*Form) {
 	newestFirst(pending)
 	newestFirst(processed)
 	return pending, processed
+}
+
+// Stats 給主管後台的儀表板：各狀態張數與異常項目張數。
+type Stats struct {
+	Pending, Approved, Rejected, Anomaly int
+}
+
+func (s *store) stats() Stats {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var st Stats
+	for _, f := range s.forms {
+		switch f.Status {
+		case "待簽核":
+			st.Pending++
+		case "已核准":
+			st.Approved++
+		case "已退回":
+			st.Rejected++
+		}
+		if f.IsAnomaly() {
+			st.Anomaly++
+		}
+	}
+	return st
 }
 
 // clear empties all data; caller re-seeds afterwards.
@@ -331,13 +385,14 @@ func main() {
 			photoType = header.Header.Get("Content-Type")
 		}
 		f := s.add(&Form{
-			Customer: r.FormValue("customer"),
-			Site:     r.FormValue("site"),
-			Panel:    r.FormValue("panel"),
-			Engineer: r.FormValue("engineer"),
-			Items:    items,
-			Note:     r.FormValue("note"),
-			Status:   "待簽核",
+			Customer:  r.FormValue("customer"),
+			Site:      r.FormValue("site"),
+			Panel:     r.FormValue("panel"),
+			Engineer:  r.FormValue("engineer"),
+			Items:     items,
+			Note:      r.FormValue("note"),
+			Signature: parseSignature(r.FormValue("signature")),
+			Status:    "待簽核",
 			CreatedAt: time.Now(),
 		}, photo, photoType)
 		if taskID, err := strconv.Atoi(r.FormValue("task")); err == nil {
@@ -358,7 +413,9 @@ func main() {
 
 	mux.HandleFunc("GET /admin", func(w http.ResponseWriter, r *http.Request) {
 		pending, processed := s.list()
-		render(w, "admin.html", map[string]any{"Pending": pending, "Processed": processed})
+		render(w, "admin.html", map[string]any{
+			"Pending": pending, "Processed": processed, "Stats": s.stats(),
+		})
 	})
 
 	review := func(status string) http.HandlerFunc {

@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+{{template "topbar"}}
 <main class="wrap">
   <a class="back" href="/">← 回首頁</a>
   <h1>我的待簽客戶</h1>
@@ -25,7 +26,7 @@
       <strong>{{.Customer}}</strong>
       <span class="badge {{.StatusClass}}">{{.Status}}</span>
     </div>
-    <p class="muted">{{.Site}}｜{{.Panel}}｜{{.Engineer}}</p>
+    <p class="muted meta-code">{{.Site}}｜{{.Panel}}｜{{.Engineer}}</p>
     {{if eq .Status "未填單"}}
     <a class="btn-link" href="/new?task={{.ID}}">填單簽核 →</a>
     {{else if .FormID}}
