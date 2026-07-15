@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>簽核單 #{{.Form.ID}} 列印版</title>
+<link rel="stylesheet" href="/static/print.css">
+</head>
+<body>
+  <button class="no-print print-btn" onclick="window.print()">🖨 列印 / 儲存為 PDF</button>
+
+  <header class="doc-header">
+    <div class="doc-brand">
+      <strong>台拓機電顧問有限公司</strong>
+      <span>配電盤檢測簽核單</span>
+    </div>
+    <div class="doc-meta">
+      <span>單號 #{{.Form.ID}}</span>
+      <span>狀態：{{.Form.Status}}</span>
+    </div>
+  </header>
+
+  <table class="doc-info">
+    <tr><th>客戶</th><td>{{.Form.Customer}}</td><th>檢測人員</th><td>{{.Form.Engineer}}</td></tr>
+    <tr><th>案場</th><td colspan="3">{{.Form.Site}}</td></tr>
+    <tr><th>盤體 / 迴路</th><td>{{.Form.Panel}}</td><th>填單時間</th><td>{{.Form.CreatedFmt}}</td></tr>
+    {{if .Form.ReviewedFmt}}<tr><th>簽核時間</th><td colspan="3">{{.Form.ReviewedFmt}}</td></tr>{{end}}
+  </table>
+
+  <section>
+    <h2>檢測項目</h2>
+    <ul class="doc-items">
+      {{range .Form.Items}}<li>{{if .OK}}☑{{else}}☐{{end}} {{.Name}}</li>{{end}}
+    </ul>
+    {{if .Form.Note}}<p><strong>備註：</strong>{{.Form.Note}}</p>{{end}}
+  </section>
+
+  {{if eq .Form.Status "已退回"}}
+  <p class="doc-reject"><strong>退回原因：</strong>{{.Form.RejectReason}}</p>
+  {{end}}
+
+  {{if .Form.HasPhoto}}
+  <section>
+    <h2>現場照片</h2>
+    <img class="doc-photo" src="/photos/{{.Form.ID}}" alt="現場照片">
+  </section>
+  {{end}}
+
+  {{if .Form.Signature}}
+  <section>
+    <h2>客戶簽名確認</h2>
+    <img class="doc-sig" src="{{.Form.Signature}}" alt="客戶手寫簽名">
+  </section>
+  {{end}}
+
+  <footer class="doc-footer">列印時間：{{.PrintedAt}}（由台拓機電行動簽核系統產出）</footer>
+</body>
+</html>

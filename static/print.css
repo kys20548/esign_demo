@@ -1,0 +1,38 @@
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 24px;
+  font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+  color: #111; max-width: 720px; margin-inline: auto; line-height: 1.6;
+}
+
+.print-btn {
+  display: block; margin: 0 auto 20px; padding: 10px 20px;
+  background: #ff6a13; color: #fff; border: none; border-radius: 4px;
+  font-size: .95rem; font-weight: 700; cursor: pointer;
+}
+
+.doc-header {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  border-bottom: 3px solid #161a1f; padding-bottom: 10px; margin-bottom: 16px;
+}
+.doc-brand strong { display: block; font-size: 1.2rem; }
+.doc-brand span { font-size: .9rem; color: #555; }
+.doc-meta { text-align: right; font-size: .85rem; color: #333; }
+.doc-meta span { display: block; }
+
+.doc-info { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: .92rem; }
+.doc-info th, .doc-info td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
+.doc-info th { background: #f2f2f2; width: 100px; font-weight: 700; }
+
+h2 { font-size: 1rem; border-left: 4px solid #ff6a13; padding-left: 8px; margin: 18px 0 8px; }
+.doc-items { list-style: none; padding: 0; margin: 0; }
+.doc-items li { padding: 3px 0; }
+.doc-reject { background: #fbe3e3; border: 1px solid #f0b3b5; padding: 8px 10px; border-radius: 4px; }
+.doc-sig { max-width: 260px; border: 1px solid #ccc; }
+.doc-photo { max-width: 100%; border: 1px solid #ccc; margin-top: 4px; }
+.doc-footer { margin-top: 30px; font-size: .78rem; color: #888; border-top: 1px solid #ddd; padding-top: 8px; }
+
+@media print {
+  .no-print { display: none !important; }
+  body { padding: 0; }
+}

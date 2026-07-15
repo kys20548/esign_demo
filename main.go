@@ -472,6 +472,18 @@ func main() {
 		})
 	})
 
+	mux.HandleFunc("GET /forms/{id}/print", func(w http.ResponseWriter, r *http.Request) {
+		id, _ := strconv.Atoi(r.PathValue("id"))
+		f, ok := s.get(id)
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		render(w, "print.html", map[string]any{
+			"Form": f, "PrintedAt": time.Now().Format("2006/01/02 15:04"),
+		})
+	})
+
 	mux.HandleFunc("GET /admin", func(w http.ResponseWriter, r *http.Request) {
 		pending, processed := s.list()
 		render(w, "admin.html", map[string]any{

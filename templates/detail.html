@@ -11,6 +11,7 @@
 <main class="wrap">
   <a class="back" href="{{.Back}}">← {{.BackLabel}}</a>
   <h1>簽核單 #{{.Form.ID}} <span class="badge {{.Form.StatusClass}}">{{.Form.Status}}</span></h1>
+  <a class="link-line" href="/forms/{{.Form.ID}}/print" target="_blank">🖨 匯出 / 列印 PDF</a>
 
   {{if .Form.IsAnomaly}}
   <div class="notice">⚠️ 本次檢測有項目未通過，請主管留意備註說明。</div>
