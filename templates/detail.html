@@ -58,10 +58,10 @@
     <strong>簽核歷程</strong>
     <ul class="timeline">
       {{range .History}}
-      <li class="{{if eq .ID $.Form.ID}}current{{end}}">
-        <span class="badge {{.StatusClass}}">{{.Status}}</span>
-        <span class="meta-code">#{{.ID}}｜{{.CreatedFmt}}</span>
-        {{if eq .Status "已退回"}}<p class="muted">退回原因：{{.RejectReason}}</p>{{end}}
+      <li class="{{if eq .FormID $.Form.ID}}current{{end}}">
+        <span class="badge {{.Class}}">{{.Label}}</span>
+        <span class="meta-code">#{{.FormID}}｜{{.TimeFmt}}</span>
+        {{if .Note}}<p class="muted">退回原因：{{.Note}}</p>{{end}}
       </li>
       {{end}}
     </ul>

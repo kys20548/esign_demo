@@ -188,22 +188,47 @@ func (s *store) list() (pending, processed []*Form) {
 	return pending, processed
 }
 
-// formsForTask 回傳同一個派工底下所有送過的單，依填單時間由舊到新排序，
-// 用來在詳情頁呈現「建立 → 退回 → 重新送單」的完整歷程。
-func (s *store) formsForTask(taskID int) []*Form {
-	if taskID == 0 {
-		return nil
+// Event 是簽核歷程時間軸上的一格：填單、核准或退回，各自帶著發生時間。
+type Event struct {
+	FormID int
+	Label  string // 填單 / 已核准 / 已退回
+	Time   time.Time
+	Note   string // 退回原因
+}
+
+func (e Event) Class() string   { return statusClass(e.Label) }
+func (e Event) TimeFmt() string { return e.Time.Format("01/02 15:04") }
+
+// formEvents 把單張單自己的生命週期（填單、以及若已簽核則核准/退回）
+// 攤平成時間軸事件，讓歷程從一開始填單就看得到，不必等到退回重送才出現。
+func formEvents(f *Form) []Event {
+	events := []Event{{FormID: f.ID, Label: "填單", Time: f.CreatedAt}}
+	if !f.ReviewedAt.IsZero() {
+		events = append(events, Event{FormID: f.ID, Label: f.Status, Time: f.ReviewedAt, Note: f.RejectReason})
 	}
+	return events
+}
+
+// timeline 回傳這張單完整的簽核歷程：若綁定派工，會把同一派工底下所有
+// 送單（含退回重送）的事件合併、依時間排序；未綁定派工則只看這張單自己。
+func (s *store) timeline(f *Form) []Event {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	var out []*Form
-	for _, f := range s.forms {
-		if f.TaskID == taskID {
-			out = append(out, f)
+	forms := []*Form{f}
+	if f.TaskID != 0 {
+		forms = nil
+		for _, other := range s.forms {
+			if other.TaskID == f.TaskID {
+				forms = append(forms, other)
+			}
 		}
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.Before(out[j].CreatedAt) })
-	return out
+	sort.Slice(forms, func(i, j int) bool { return forms[i].CreatedAt.Before(forms[j].CreatedAt) })
+	var events []Event
+	for _, form := range forms {
+		events = append(events, formEvents(form)...)
+	}
+	return events
 }
 
 // Stats 給主管後台的儀表板：各狀態張數與異常項目張數。
@@ -463,10 +488,7 @@ func main() {
 		if r.URL.Query().Get("from") == "tasks" {
 			back, backLabel = "/tasks", "待簽客戶"
 		}
-		history := s.formsForTask(f.TaskID)
-		if len(history) < 2 {
-			history = nil
-		}
+		history := s.timeline(f)
 		render(w, "detail.html", map[string]any{
 			"Form": f, "Back": back, "BackLabel": backLabel, "History": history,
 		})
